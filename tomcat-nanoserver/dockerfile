@@ -1,0 +1,23 @@
+FROM openjdk:8-nanoserver
+
+# Dockerfile author / maintainer 
+MAINTAINER Adam Bezverkov <adam.bezverkov@gmail.com> 
+
+ARG TOMCAT_VERSION="8.5.31"
+ENV CATALINA_HOME="c:/apache-tomcat" \
+    PATH="$CATALINA_HOME/bin:$PATH" \
+    TOMCAT_DOWNLOAD_URL="http://supergsego.com/apache/tomcat/tomcat-8/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}-windows-x64.zip" \
+    TOMCAT_SHA512="6dc31ae8d60cb87c8e4519d4676a0ff7dfdaf2b0aa88d8110d4725a7bbb6b94dd8da3502c574941958603921bfb2f124d5a580b890eb96ace0767f895e3d23f9"
+
+ENV TOMCAT_NATIVE_LIBDIR="$CATALINA_HOME/native-jni-lib" \
+    LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$TOMCAT_NATIVE_LIBDIR"
+
+RUN mkdir -p ${env:CATALINA_HOME}
+
+ADD apache-tomcat-$TOMCAT_VERSION $CATALINA_HOME
+
+WORKDIR $CATALINA_HOME/bin
+
+EXPOSE 8080
+
+ENTRYPOINT ["catalina.bat","run"]

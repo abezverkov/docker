@@ -1,0 +1,26 @@
+FROM openjdk:8-nanoserver
+
+# Dockerfile author / maintainer 
+MAINTAINER Adam Bezverkov <adam.bezverkov@gmail.com> 
+
+# Override the solr download location with e.g.:
+#   docker build -t mine --build-arg SOLR_DOWNLOAD_SERVER=http://www.apache.org/dist/lucene/solr/ .
+ARG SOLR_VERSION="7.3.1" 
+ARG SOLR_DOWNLOAD_SERVER
+
+ENV SOLR_USER="solr" \
+    SOLR_UID="8983" \
+    SOLR_GROUP="solr" \
+    SOLR_GID="8983" \
+    SOLR_URL="${SOLR_DOWNLOAD_SERVER:-https://archive.apache.org/dist/lucene/solr}/${SOLR_VERSION}/solr-${SOLR_VERSION}.tgz" \
+    SOLR_SHA1="551fa068b2ae464bafd47f668408f392eb8dec9c" \
+    SOLR_KEYS="A72C08F85D7666C3980C35DD1A3859BBABBDB295" \
+    GOSU_VERSION=1.10 \
+    GOSU_KEY=B42F6819007F00F88E364FD4036A9C25BF357DD4
+
+ADD solr-${SOLR_VERSION} solr
+
+EXPOSE 8983
+WORKDIR /solr/bin
+
+CMD ["solr.cmd","start", "-f"]

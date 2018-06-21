@@ -1,0 +1,16 @@
+FROM microsoft/nanoserver:latest
+
+ENV MONGO_VERSION="3.6.5" \
+    MONGO_DOWNLOAD_URL="http://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-${MONGO_VERSION}.zip" \
+    MONGO_DOWNLOAD_SHA256="3546f8d5721e91c9158133d37335d35703207af566266b248eeba6ed0db0fbc0"
+
+ADD prepare C:/windows/system32
+ADD mongodb C:/mongodb
+
+RUN setx /M PATH "C:\mongodb\bin;%PATH%"
+
+VOLUME C:/data/db C:/data/configdb C:/data/log
+
+EXPOSE 27017
+
+CMD ["mongod.exe","--bind_ip_all"]
