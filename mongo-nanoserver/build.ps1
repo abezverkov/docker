@@ -3,13 +3,17 @@ param (
     [string] $ImageName = (Get-Item .).Name,
 
     [Parameter(Mandatory=$false)]
-    [string[]] $Tags =@('1.0'),
+    [string[]] $Version ='3.6.5',
+
+    [Parameter(Mandatory=$false)]
+    [string[]] $Tags =@(),
 
     [Parameter(Mandatory=$false)]
     [string] $LoginServer = 'abezverkov'
 )
 # Host Steps
-# -------------------------------------------------------------------------$env:MONGO_VERSION = "3.6.5"
+# -------------------------------------------------------------------------
+$env:MONGO_VERSION = $Version
 $env:MONGO_DOWNLOAD_URL  = "https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-${env:MONGO_VERSION}-signed.msi"
 $env:MONGO_DOWNLOAD_SHA256 = "f1e31e6ad01cd852d0a59dacf9b2ea34e64fb61977f9334338e9f16a468dec92"
 
@@ -25,7 +29,7 @@ if ((Get-FileHash mongo.msi -Algorithm sha256).Hash -ne $env:MONGO_DOWNLOAD_SHA2
   exit 1;
 }; 
 
-$installLocation = "$pwd\\mongodb"
+$installLocation = "$pwd\\mongodb-${env:MONGO_VERSION}"
 if (-not(Test-Path $installLocation)) {
   Write-Host 'Installing ...';
   Start-Process msiexec -Wait -ArgumentList @('/i', $localFileName, '/quiet', '/qn', '/l ".\package.log"', "INSTALLLOCATION=$installLocation", 'ADDLOCAL=all', 'SHOULD_INSTALL_COMPASS=0' ); 
@@ -48,9 +52,10 @@ docker images --format '{{.Repository}}:{{.Tag}}' | ? { $_ -match $image } | % {
 # Build Steps
 # -------------------------------------------------------------------------
 Write-Host 'Building dockerfile'
-docker build -t $image .
+docker build --build-arg MONGO_VERSION=$Version -t $image .
 
 # Tag Steps
 # -------------------------------------------------------------------------
 Write-Host 'Tagging Image'
+$Tags += $Version
 $Tags | % { docker tag $image "${image}:$_" }
