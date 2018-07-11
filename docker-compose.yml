@@ -1,0 +1,33 @@
+version: '3'
+services:
+  mongo:
+    image: abezverkov/mongo-nanoserver:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:c:/data/db 
+      - mongo-logs:c:/data/log
+      #- C:/data/configdb 
+    restart: always
+
+  solr:
+    image: abezverkov/solr-nanoserver:latest
+    container_name: solr
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:c:/solr/data
+    restart: always
+
+  tomcat:
+    image: abezverkov/tomcat-nanoserver:latest
+    container_name: tomcat
+    ports:
+      - "8888:8080"
+    restart: always
+
+volumes:
+  mongo-data:  
+  mongo-logs: 
+  solr-data:
