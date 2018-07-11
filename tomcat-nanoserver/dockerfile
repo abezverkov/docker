@@ -1,23 +1,41 @@
-FROM openjdk:8-nanoserver
+FROM microsoft/windowsservercore:1803 as download
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+ARG TOMCAT_VERSION="8.5.32"
+ENV CATALINA_HOME="c:/apache-tomcat" \
+    TOMCAT_DOWNLOAD_URL="https://www.apache.org/dist/tomcat/tomcat-8/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}-windows-x64.zip" \
+    TOMCAT_SHA512="01ae78f6497fd214b0bd68d81354230976835fba55f95140c7532fd3a523ad6be3e6b160b311ff8881fbf82cd2954284ede67e70a5d145aea4f61ec83714c158" 
+
+RUN $AllProtocols = [System.Net.SecurityProtocolType]'Ssl3,Tls,Tls11,Tls12'; \ 
+    [System.Net.ServicePointManager]::SecurityProtocol = $AllProtocols; \
+    Write-Host ('Downloading {0} ...' -f $env:TOMCAT_DOWNLOAD_URL); \
+    $localFileName = 'apache-tomcat-{0}.zip' -f $env:TOMCAT_VERSION; \
+    Invoke-WebRequest -Uri $env:TOMCAT_DOWNLOAD_URL -OutFile $localFileName; \
+    Write-Host ('Verifying sha512 ({0}) ...' -f $env:TOMCAT_SHA512); \
+    if ((Get-FileHash $localFileName -Algorithm sha512).Hash -ne $env:TOMCAT_SHA512) { Write-Host 'FAILED!'; exit 1; }; \
+    Write-Host 'Expanding ...'; \
+    Expand-Archive -Path $localFileName -DestinationPath 'C:\' ; \ 
+    Remove-Item $localFileName;
+
+FROM abezverkov/openjdk-nanoserver:1.8.0
 
 # Dockerfile author / maintainer 
 MAINTAINER Adam Bezverkov <adam.bezverkov@gmail.com> 
 
-ARG TOMCAT_VERSION="8.5.31"
+ARG TOMCAT_VERSION="8.5.32"
 ENV CATALINA_HOME="c:/apache-tomcat" \
-    PATH="$CATALINA_HOME/bin:$PATH" \
-    TOMCAT_DOWNLOAD_URL="http://supergsego.com/apache/tomcat/tomcat-8/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}-windows-x64.zip" \
-    TOMCAT_SHA512="6dc31ae8d60cb87c8e4519d4676a0ff7dfdaf2b0aa88d8110d4725a7bbb6b94dd8da3502c574941958603921bfb2f124d5a580b890eb96ace0767f895e3d23f9"
-
-ENV TOMCAT_NATIVE_LIBDIR="$CATALINA_HOME/native-jni-lib" \
+    TOMCAT_NATIVE_LIBDIR="$CATALINA_HOME/native-jni-lib" \
     LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$TOMCAT_NATIVE_LIBDIR"
 
-RUN mkdir -p ${env:CATALINA_HOME}
+COPY --from=download c:/apache-tomcat-$TOMCAT_VERSION $CATALINA_HOME
 
-ADD apache-tomcat-$TOMCAT_VERSION $CATALINA_HOME
+USER Administrator
+
+RUN setx /M PATH "c:/apache-tomcat/bin;%PATH%"
 
 WORKDIR $CATALINA_HOME/bin
 
 EXPOSE 8080
 
-ENTRYPOINT ["catalina.bat","run"]
+CMD ["catalina.bat","run"]

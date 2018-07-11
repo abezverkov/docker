@@ -13,35 +13,7 @@ param (
 )
 # Host Steps
 # -------------------------------------------------------------------------
-$env:MONGO_VERSION = $Version
-$env:MONGO_DOWNLOAD_URL  = "https://downloads.mongodb.org/win32/mongodb-win32-x86_64-2008plus-ssl-${env:MONGO_VERSION}-signed.msi"
-$env:MONGO_DOWNLOAD_SHA256 = "f1e31e6ad01cd852d0a59dacf9b2ea34e64fb61977f9334338e9f16a468dec92"
-
-$localFileName = 'mongo.msi'
-if (-not (Test-Path $localFileName)) {
-  Write-Host ('Downloading {0} ...' -f $env:MONGO_DOWNLOAD_URL);
-  iwr -Uri $env:MONGO_DOWNLOAD_URL -OutFile $localFileName;
-}
-
-Write-Host ('Verifying sha256 ({0}) ...' -f $env:MONGO_DOWNLOAD_SHA256); 
-if ((Get-FileHash mongo.msi -Algorithm sha256).Hash -ne $env:MONGO_DOWNLOAD_SHA256) { 
-  Write-Host 'FAILED!'; 
-  exit 1;
-}; 
-
-$installLocation = "$pwd\\mongodb-${env:MONGO_VERSION}"
-if (-not(Test-Path $installLocation)) {
-  Write-Host 'Installing ...';
-  Start-Process msiexec -Wait -ArgumentList @('/i', $localFileName, '/quiet', '/qn', '/l ".\package.log"', "INSTALLLOCATION=$installLocation", 'ADDLOCAL=all', 'SHOULD_INSTALL_COMPASS=0' ); 
-}
-
-$prepareLocation = "$pwd\\prepare"
-if (-not(Test-Path $prepareLocation)) {
-  mkdir $prepareLocation;
-}
-copy C:\windows\system32\msvcp140.dll $prepareLocation -Force; 
-copy C:\windows\system32\vccorlib140.dll $prepareLocation -Force; 
-copy C:\windows\system32\vcruntime140.dll $prepareLocation -Force; 
+#
 
 # Clean Images
 # -------------------------------------------------------------------------
@@ -51,7 +23,7 @@ docker images --format '{{.Repository}}:{{.Tag}}' | ? { $_ -match $image } | % {
 
 # Build Steps
 # -------------------------------------------------------------------------
-Write-Host 'Building dockerfile'
+Write-Host "Building dockerfile: $image"
 docker build --build-arg MONGO_VERSION=$Version -t $image .
 
 # Tag Steps

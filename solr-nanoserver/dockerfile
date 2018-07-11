@@ -1,4 +1,22 @@
-FROM openjdk:8-nanoserver
+FROM microsoft/windowsservercore:1803 as download
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+ARG SOLR_VERSION="7.3.1" 
+ARG SOLR_DOWNLOAD_SERVER
+
+ENV SOLR_URL="${SOLR_DOWNLOAD_SERVER:-https://archive.apache.org/dist/lucene/solr}/${SOLR_VERSION}/solr-${SOLR_VERSION}.zip" \
+    SOLR_SHA1="551fa068b2ae464bafd47f668408f392eb8dec9c" 
+
+RUN Write-Host ('Downloading {0} ...' -f $env:SOLR_URL); \
+    $localFileName = 'solr-{0}.zip' -f $env:SOLR_VERSION; \
+    Invoke-WebRequest -Uri $env:SOLR_URL -OutFile $localFileName; \
+    Write-Host ('Verifying sha256 ({0}) ...' -f $env:SOLR_SHA1); \
+    if ((Get-FileHash $localFileName -Algorithm sha1).Hash -ne $env:SOLR_SHA1) { Write-Host 'FAILED!'; exit 1; }; \
+    Expand-Archive -Path $localFileName -DestinationPath 'C:\'; \
+    Remove-Item $localFileName;
+
+FROM abezverkov/openjdk-nanoserver:1.8.0
 
 # Dockerfile author / maintainer 
 MAINTAINER Adam Bezverkov <adam.bezverkov@gmail.com> 
@@ -18,9 +36,9 @@ ENV SOLR_USER="solr" \
     GOSU_VERSION=1.10 \
     GOSU_KEY=B42F6819007F00F88E364FD4036A9C25BF357DD4
 
-ADD solr-${SOLR_VERSION} solr
+COPY --from=download C:/solr-${SOLR_VERSION} C:/solr
 
 EXPOSE 8983
-WORKDIR /solr/bin
+WORKDIR C:/solr/bin
 
 CMD ["solr.cmd","start", "-f"]
